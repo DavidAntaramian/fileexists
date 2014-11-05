@@ -1,0 +1,163 @@
+#!/usr/bin/ruby
+
+# fileexists
+#
+# A small utility to check whether a file exists with visual output.
+# Useful when called with GNU Parallel to determine whether there are
+# inconsistencies between files that are supposed to exist and files
+# that actually exist, for example when listing all the files installed
+# by a package management utitlity.
+#
+# And yes, the usage documentation is longer than the actual script.
+#
+# Copyright (c) 2014 David Antaramian <david@antaramian.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# This script uses ANSI escape codes to change the rendering of text output.
+# For more information on ANSI escape codes, refer to the entry on
+# Wikipedia: http://en.wikipedia.org/wiki/ANSI_escape_code
+
+USAGE = <<USAGE
+  \033[0m
+  \033[1mNAME\033[0m
+    fileexists -- check if file exists
+
+  \033[1mSYNOPSIS\033[0m
+    \033[1mfileexists\033[0m [options] \033[4mfilename\033[0m
+
+  \033[1mDESCRIPTION\033[0m
+    \033[1mfileexists\033[0m is a small utility to check whether the \033[4mfilename\033[0m provided exists.
+    By default it will print out the filename preceeded by either a plus or
+    minus symbol, where plus indicates the file does exist and minus indicates
+    the file does not exist. For example:
+
+      + fileexists
+
+    or alternatively
+
+      - filexists
+
+    \033[1mfileexists\033[0m can also output the results in color using the \033[1m-c\033[0m/\033[1m--color\033[0m
+    flag. In this form, the result output will appear as the following (depending
+    on your terminal's support for color and ANSI escape codes):
+
+      \033[32m+ fileexists\033[0m
+
+    or alternatively
+
+      \033[31m- filexists\033[0m
+
+    Regardless of the \033[1m-q\033[0m/\033[1m--quiet\033[0m setting, \033[1mfileexists\033[0m will always produce an exit
+    status based on whether the \033[4mfilename\033[0m exists. See \033[1mEXIT STATUS\033[0m below for
+    more details.
+
+    Note that \033[1mfileexists\033[0m checks for the existence of a file based on the
+    supplied \033[4mfilename\033[0m, using the current working directory as the relative
+    point to look for that \033[4mfilename\033[0m. If you need to check on a file outside
+    the working directory, you can either supply it as a relative path or as
+    an absolute path.
+
+  \033[1mOPTIONS\033[0m
+    -c, --color
+      Specifies that the output should be colorized. Output will be in \033[32mgreen\033[0m
+      for a file that exists and \033[31mred\033[0m for a file that does not exist. This
+      option is especially useful when you are checking for the existence of
+      a large number of files at once.
+
+      This requires a terminal that supports output in color using ANSI SGR
+      escape sequences. If the words green and red in the paragraph above
+      are colorized, your terminal supports this.
+
+    -h, --help
+      Prints this help text.
+
+    -q, --quiet
+      Specifies that utiltity should not output anything. This is useful if
+      you are using the exit code as a conditional determinant in another
+      script. See EXIT STATUS below.
+
+  \033[1mRECOMMENDED USAGE\033[0m
+    \033[1mfileexists\033[0m was originally written as a quick and dirty way to
+    test if all the files installed with a package had been removed. Since
+    GNU Parallel required some hoop-jumping to make it work with the Zsh
+    built-in compound command conditional (e.g., \033[1m[[ -e \033[4mfilename\033[24m ]]\033[0m)
+    it was easier to just write a simple Ruby script that could be reused.
+
+    The original usecase was uninstalling the Graphviz Mac OS binary package
+    in preparation for installing Graphviz from homebrew. After removing most
+    of the files for installed by the binary package, the following commands
+    (knowing that Graphviz installs under prefix /usr/local/) allows verification
+    of any files that are still left around:
+
+      cd /usr/local
+      pkgutil --only-files --files com.att.graphviz.cli.pkg | parallel fileexists -c
+
+    Since this usecase is for removing files, a quick scan of which lines are
+    green shows those files that still need to be removed.
+
+  \033[1mEXIT STATUS\033[0m
+    \033[1mfileexists\033[0m shines when called from other systems, and to that end a number
+    of exit status codes are provided to help the caller determine whether the
+    \033[4mfilename\033[0m provided exists or not. Most callers will want to pay attention
+    to exit codes \033[1m0\033[0m (\033[4mfilename\033[0m exists) and \033[1m1\033[0m (\033[4mfilename\033[0m does not exist). All
+    other exit codes specify that the options provided (or not) did not result
+    in a file existence check. The full list of codes is as follows:
+
+    \033[1m0\033[0m
+      \033[1mfileexists\033[0m will exit with a status of \033[1m0\033[0m to mean the \033[4mfilename\033[0m exists.
+
+    \033[1m1\033[0m
+      \033[1mfileexists\033[0m will exit with a status of \033[1m1\033[0m to mean the \033[4mfilename\033[0m does
+      not exist.
+
+    \033[1m2\033[0m
+      \033[1mfileexists\033[0m will exit with a status of \033[1m2\033[0m when the help flag is set
+      via the command line option \033[1m-h\033[0m/\033[1m--help\033[0m.
+
+    \033[1m64\033[0m
+      \033[1mfileexists\033[0m will exit with a status of \033[1m64\033[0m when there are no arguments
+      (in correlation to the <\033[4msysexits.h\033[0m> \033[1mEX_USAGE\033[0m exit code).
+
+USAGE
+
+if ARGV.empty? || ARGV.include?("-h") || ARGV.include?("--help")
+  puts USAGE
+  exit ARGV.empty? ? 64 : 2
+end
+
+COLOR = ARGV.include?("--color") || ARGV.include?("-c")
+QUIET = ARGV.include?("--quiet") || ARGV.include?("-q")
+FILENAME = ARGV[-1]
+
+# This is just the ANSI escape code to reset the graphic rendering
+RESET = "\033[0m"
+
+# These constants are defined based on whether the color flag has been
+# set so that we don't have to do any conditional expressions to
+# build the output string when it's in color or not in color
+RED = COLOR ? "\033[31m" : ""
+GREEN = COLOR ? "\033[32m" : ""
+
+if File.exist? FILENAME
+  puts "#{GREEN}+ #{FILENAME}#{RESET}" unless QUIET
+else
+  puts "#{RED}- #{FILENAME}#{RESET}" unless QUIET
+  exit 1
+end
